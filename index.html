@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Star Trek: Red Alert — Bridge Command</title>
+<style>
+  :root{
+    --lcars-orange:#ff9900;
+    --lcars-peach:#ffcc99;
+    --lcars-gold:#ffcc66;
+    --lcars-lavender:#9999cc;
+    --lcars-blue:#99ccff;
+    --lcars-red:#cc6666;
+    --lcars-peru:#cc9966;
+    --bg:#000000;
+    --panel:#181018;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;user-select:none;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:#e8e8f0;
+    font-family:"Arial Narrow",Arial,Helvetica,sans-serif;
+    letter-spacing:.06em;
+    overflow:hidden;
+  }
+  #shell{display:flex;flex-direction:column;height:100vh;max-width:1200px;margin:0 auto;padding:0 12px;}
+
+  /* LCARS frame */
+  #frame-top{display:flex;height:52px;align-items:stretch;gap:8px;margin-bottom:6px;}
+  .elbow{width:120px;background:var(--lcars-orange);border-radius:0 0 40px 0;}
+  .bar-a{flex:2;background:var(--lcars-orange);border-radius:0 0 12px 12px;}
+  .bar-b{flex:1;background:var(--lcars-lavender);border-radius:0 0 12px 12px;}
+  .bar-c{flex:1;background:var(--lcars-gold);border-radius:0 0 12px 12px;}
+  #frame-title{display:flex;flex-direction:column;justify-content:center;padding:0 18px;color:#000;background:var(--lcars-orange);border-radius:0 0 24px 0;font-size:20px;font-weight:bold;letter-spacing:.15em;}
+  #frame-sub{font-size:11px;font-weight:normal;letter-spacing:.2em;}
+
+  #main{display:flex;flex:1;gap:10px;min-height:0;}
+  #sidebar{width:130px;display:flex;flex-direction:column;gap:8px;padding-top:2px;}
+  .pill{background:var(--lcars-peru);color:#000;border-radius:20px;padding:8px 0;text-align:center;font-weight:bold;font-size:13px;letter-spacing:.12em;cursor:pointer;transition:filter .15s;}
+  .pill:hover{filter:brightness(1.2);}
+  .pill.blue{background:var(--lcars-blue);}
+  .pill.lav{background:var(--lcars-lavender);}
+  .pill.red{background:var(--lcars-red);color:#fff;}
+  .pill.disabled{opacity:.35;cursor:default;}
+  .pill.disabled:hover{filter:none;}
+  .statchip{background:#221a22;border:1px solid #3a2f3a;border-radius:12px;padding:8px 10px;font-size:12px;text-align:center;}
+  .statchip b{display:block;font-size:18px;color:var(--lcars-gold);}
+
+  #table{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;}
+
+  /* enemy zone */
+  #enemy-zone{background:var(--panel);border:1px solid #3a2f3a;border-radius:14px;padding:10px 14px;}
+  #enemy-head{display:flex;justify-content:space-between;align-items:baseline;}
+  #enemy-name{color:var(--lcars-red);font-size:19px;font-weight:bold;letter-spacing:.14em;}
+  #enemy-class{color:#9a8f9a;font-size:12px;}
+  .barrow{margin-top:6px;}
+  .barlabel{font-size:11px;color:#b9aec4;letter-spacing:.15em;margin-bottom:2px;}
+  .barouter{height:14px;background:#2a2028;border-radius:7px;overflow:hidden;}
+  .barfill{height:100%;border-radius:7px;transition:width .35s;}
+  #enemy-hull .barfill{background:linear-gradient(90deg,#cc6666,#ff9966);}
+  #enemy-status{margin-top:6px;font-size:12px;min-height:16px;color:var(--lcars-lavender);letter-spacing:.1em;}
+  .cloak{color:var(--lcars-blue);}
+  .adapt{color:#9fdf9f;}
+  .stunned{color:var(--lcars-gold);}
+
+  #enemy-ship{font-size:44px;text-align:center;line-height:1;margin:4px 0 2px;filter:drop-shadow(0 0 8px rgba(204,102,102,.5));transition:opacity .4s;}
+  #enemy-ship.cloaked{opacity:.28;filter:blur(1px);}
+
+  /* log */
+  #log{
+    flex:1;min-height:70px;overflow-y:auto;background:#0d0a0d;border:1px solid #2c2230;
+    border-radius:12px;padding:8px 12px;font-size:13px;line-height:1.55;
+  }
+  #log p{margin:1px 0;}
+  .lg-sys{color:#8f84a0;}
+  .lg-en{color:#e0a0a0;}
+  .lg-me{color:#a0c8e8;}
+  .lg-good{color:#a8d8a8;}
+  .lg-warn{color:var(--lcars-gold);}
+  .lg-quote{color:var(--lcars-lavender);font-style:italic;}
+
+  /* player zone */
+  #player-zone{background:var(--panel);border:1px solid #3a2f3a;border-radius:14px;padding:10px 14px;}
+  #player-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;}
+  #player-name{color:var(--lcars-gold);font-size:17px;font-weight:bold;letter-spacing:.14em;}
+  #energy-pips{font-size:15px;letter-spacing:.2em;color:var(--lcars-blue);}
+  #player-bars{display:flex;gap:16px;}
+  #player-bars .barrow{flex:1;}
+  #player-hull .barfill{background:linear-gradient(90deg,#cc9966,#ffcc66);}
+  #player-shield .barfill{background:linear-gradient(90deg,#6699cc,#99ccff);}
+
+  /* hand / cards */
+  #hand{display:flex;gap:10px;justify-content:center;padding:10px 0 4px;min-height:212px;flex-wrap:wrap;}
+  .card{
+    width:148px;min-height:196px;background:#1f1723;border:1px solid #4a3a50;border-radius:12px;
+    display:flex;flex-direction:column;cursor:pointer;position:relative;overflow:hidden;
+    transition:transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .card:hover{transform:translateY(-10px);box-shadow:0 8px 20px rgba(255,153,0,.25);border-color:var(--lcars-orange);}
+  .card .stripe{height:22px;display:flex;align-items:center;padding:0 8px;color:#000;font-weight:bold;font-size:11px;letter-spacing:.12em;}
+  .card .cost{
+    position:absolute;top:28px;right:8px;width:26px;height:26px;border-radius:50%;
+    background:var(--lcars-blue);color:#000;font-weight:bold;display:flex;align-items:center;justify-content:center;font-size:14px;
+  }
+  .card .cname{padding:8px 8px 2px;font-size:13px;font-weight:bold;color:#f0e8f0;letter-spacing:.05em;}
+  .card .cdesc{padding:4px 8px;font-size:11px;color:#b9aec4;line-height:1.35;flex:1;}
+  .card .cflavor{padding:4px 8px 8px;font-size:10px;color:#7a6f85;font-style:italic;}
+  .t-weapon .stripe{background:var(--lcars-red);}
+  .t-engineering .stripe{background:var(--lcars-gold);}
+  .t-science .stripe{background:var(--lcars-blue);}
+  .t-crew .stripe{background:var(--lcars-peach);}
+  .card.unaffordable{opacity:.45;cursor:default;}
+  .card.unaffordable:hover{transform:none;box-shadow:none;border-color:#4a3a50;}
+
+  /* floating text + fx */
+  .float{
+    position:fixed;z-index:50;font-size:26px;font-weight:bold;pointer-events:none;
+    text-shadow:0 0 10px currentColor;animation:floatUp 1.05s ease-out forwards;
+  }
+  @keyframes floatUp{0%{transform:translate(-50%,0);opacity:1;}100%{transform:translate(-50%,-70px);opacity:0;}}
+  .shake{animation:shake .4s;}
+  @keyframes shake{0%,100%{transform:translate(0);}20%{transform:translate(-8px,3px);}40%{transform:translate(7px,-4px);}60%{transform:translate(-5px,-3px);}80%{transform:translate(4px,3px);}}
+  body.alert::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:40;
+    background:radial-gradient(ellipse at center, transparent 55%, rgba(255,30,30,.35) 100%);
+    animation:alertFlash .7s ease-out;
+  }
+  @keyframes alertFlash{0%{opacity:1;}100%{opacity:0;}}
+
+  /* overlay */
+  #overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;display:flex;
+    align-items:center;justify-content:center;
+  }
+  #overlay.hidden{display:none;}
+  #overlay-box{max-width:640px;text-align:center;padding:30px;}
+  #ov-title{font-size:42px;color:var(--lcars-orange);letter-spacing:.2em;font-weight:bold;margin-bottom:6px;}
+  #ov-sub{font-size:14px;color:var(--lcars-lavender);letter-spacing:.25em;margin-bottom:22px;}
+  #ov-body{font-size:15px;line-height:1.7;color:#d8d0e0;margin-bottom:26px;text-align:left;}
+  #ov-body b{color:var(--lcars-gold);}
+  #ov-btn{display:inline-block;background:var(--lcars-orange);color:#000;font-weight:bold;font-size:18px;
+    letter-spacing:.2em;padding:12px 46px;border-radius:26px;cursor:pointer;}
+  #ov-btn:hover{filter:brightness(1.15);}
+
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:#3a2f3a;border-radius:4px;}
+</style>
+</head>
+<body>
+<div id="shell">
+  <div id="frame-top">
+    <div id="frame-title">STAR TREK<div id="frame-sub">RED ALERT · BRIDGE COMMAND</div></div>
+    <div class="bar-a"></div><div class="bar-b"></div><div class="bar-c"></div>
+  </div>
+  <div id="main">
+    <div id="sidebar">
+      <div class="statchip">TURN<b id="stat-turn">1</b></div>
+      <div class="statchip">ENCOUNTER<b id="stat-wave">1 / 3</b></div>
+      <div class="statchip">DECK<b id="stat-deck">0</b></div>
+      <div class="statchip">DISCARD<b id="stat-discard">0</b></div>
+      <div style="flex:1"></div>
+      <div class="pill lav" id="btn-mute">SOUND: ON</div>
+      <div class="pill red" id="btn-restart">ABANDON SHIP</div>
+    </div>
+    <div id="table">
+      <div id="enemy-zone">
+        <div id="enemy-head">
+          <div id="enemy-name">—</div>
+          <div id="enemy-class">—</div>
+        </div>
+        <div id="enemy-ship">▲</div>
+        <div class="barrow" id="enemy-hull">
+          <div class="barlabel">ENEMY HULL <span id="enemy-hull-num"></span></div>
+          <div class="barouter"><div class="barfill" style="width:100%"></div></div>
+        </div>
+        <div id="enemy-status"></div>
+      </div>
+      <div id="log"></div>
+      <div id="player-zone">
+        <div id="player-head">
+          <div id="player-name">USS ENTERPRISE · NCC-1701</div>
+          <div id="energy-pips"></div>
+        </div>
+        <div id="player-bars">
+          <div class="barrow" id="player-hull">
+            <div class="barlabel">HULL INTEGRITY <span id="player-hull-num"></span></div>
+            <div class="barouter"><div class="barfill" style="width:100%"></div></div>
+          </div>
+          <div class="barrow" id="player-shield">
+            <div class="barlabel">DEFLECTOR SHIELDS <span id="player-shield-num"></span></div>
+            <div class="barouter"><div class="barfill" style="width:100%"></div></div>
+          </div>
+        </div>
+        <div id="hand"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div id="overlay-box">
+    <div id="ov-title">STAR TREK</div>
+    <div id="ov-sub">RED ALERT · BRIDGE COMMAND</div>
+    <div id="ov-body">
+      <b>Mission briefing, Captain.</b><br><br>
+      You command the <b>USS Enterprise</b>. Three hostile forces are converging on Federation space:
+      a <b>Klingon D7 battle cruiser</b>, a <b>Romulan warbird</b> with an intermittent cloak, and finally a <b>Borg cube</b> that adapts to your attacks.<br><br>
+      Each turn you receive <b>energy</b> to play cards from your hand. Cards deal damage, raise shields, repair hull, and draw reinforcements. Shields absorb damage first and regenerate slowly — hull does not, unless your engineer works miracles.<br><br>
+      <b>Destroy all three enemies. The bridge is yours.</b>
+    </div>
+    <div id="ov-btn">BEGIN MISSION</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------------- audio ---------------- */
+let audioCtx = null, muted = false;
+function beep(freq, dur, type, gain){
+  if (muted) return;
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || "square"; o.frequency.value = freq;
+    g.gain.value = gain || 0.04;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur || 0.08));
+    o.stop(audioCtx.currentTime + (dur || 0.08));
+  }catch(e){}
+}
+function sfxPlay(){ beep(520,.06); setTimeout(()=>beep(760,.06),60); }
+function sfxHit(){ beep(160,.18,"sawtooth",.06); }
+function sfxAlarm(){ beep(220,.25,"sawtooth",.07); setTimeout(()=>beep(180,.25,"sawtooth",.07),280); }
+function sfxWin(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.14,"triangle",.06), i*140)); }
+function sfxLose(){ [400,340,280,200].forEach((f,i)=>setTimeout(()=>beep(f,.2,"sawtooth",.06), i*180)); }
+
+/* ---------------- cards ---------------- */
+const CARDS = [
+  { key:"phaser",  name:"Phaser Array Strike", type:"weapon", cost:2, count:3,
+    desc:"Deal 6 damage.",
+    flavor:"" },
+  { key:"torpedo", name:"Photon Torpedo", type:"weapon", cost:4, count:2,
+    desc:"Deal 13 damage.",
+    flavor:"Torpedo bay 2 armed and ready." },
+  { key:"target",  name:"Targeting Scan", type:"science", cost:1, count:2,
+    desc:"Deal 3 damage. Draw 1 card.",
+    flavor:"" },
+  { key:"sensors", name:"Long-Range Sensors", type:"science", cost:1, count:2,
+    desc:"Draw 2 cards.",
+    flavor:"Sensors detect... options." },
+  { key:"shield1", name:"Reinforce Shields", type:"engineering", cost:2, count:3,
+    desc:"Gain 8 shield points.",
+    flavor:"" },
+  { key:"power",   name:"Emergency Power", type:"engineering", cost:1, count:2,
+    desc:"Gain 2 energy. Draw 1 card.",
+    flavor:"" },
+  { key:"repair",  name:"Damage Control", type:"engineering", cost:2, count:2,
+    desc:"Repair 7 hull.",
+    flavor:"" },
+  { key:"stations",name:"All Hands to Stations", type:"engineering", cost:3, count:2,
+    desc:"Gain 10 shield points and 1 energy.",
+    flavor:"" },
+  { key:"kirk",    name:"Attack Pattern Kirk", type:"crew", cost:3, count:2,
+    desc:"Deal 5 damage, twice.",
+    flavor:"\"Risk is our business.\"" },
+  { key:"spock",   name:"Spock's Analysis", type:"crew", cost:2, count:2,
+    desc:"Deal 4 damage. Draw 1 card.",
+    flavor:"\"Fascinating.\"" },
+  { key:"mccoy",   name:"McCoy's Tri-Ox", type:"crew", cost:2, count:2,
+    desc:"Repair 8 hull.",
+    flavor:"\"I'm a doctor, not an engineer!\"" },
+  { key:"uhura",   name:"Hailing Frequencies", type:"crew", cost:1, count:2,
+    desc:"The enemy skips its next attack.",
+    flavor:"\"Opening hailing frequencies.\"" },
+  { key:"sulu",    name:"Helmsman's Maneuver", type:"crew", cost:2, count:2,
+    desc:"Deal 7 damage.",
+    flavor:"\"Aye, sir.\"" },
+  { key:"chekov",  name:"Mark Their Weak Point", type:"crew", cost:2, count:2,
+    desc:"Deal 5 damage. Draw 1 card.",
+    flavor:"\"Keptin on zhe bridge!\"" }
+];
+
+const CARD_BY_KEY = {};
+CARDS.forEach(c => CARD_BY_KEY[c.key] = c);
+
+/* ---------------- enemies ---------------- */
+const WAVES = [
+  {
+    name:"IKS KRONOS ONE", cls:"Klingon D7 Battle Cruiser", glyph:"▲", hull:40,
+    attacks:[
+      { min:5, max:8,  text:"fires disruptors" },
+      { min:6, max:9,  text:"launches a torpedo volley" }
+    ],
+    barrage:{ every:3, bonus:4, text:"unleashes a full disruptor barrage" },
+    intro:"Klingon battle cruiser decloaking off the port bow — they are charging weapons!",
+    taunts:[
+      "\"Today is a good day to die!\"",
+      "\"Victory is life, Federation dog!\"",
+      "\"Die with honor, p'takh!\""
+    ]
+  },
+  {
+    name:"IRW VALDORE", cls:"Romulan Warbird", glyph:"◆", hull:55,
+    attacks:[
+      { min:6, max:10, text:"fires plasma torpedoes" },
+      { min:5, max:8,  text:"strikes with disruptors" }
+    ],
+    cloak:true,
+    intro:"Romulan warbird detected. Sensors show intermittent cloak oscillations — it may vanish between attacks.",
+    taunts:[
+      "\"Intriguing. Your ship is... inadequate.\"",
+      "\"The Empire does not negotiate.\"",
+      "\"You are worthy opponents. Briefly.\""
+    ]
+  },
+  {
+    name:"BORG CUBE", cls:"Borg Vessel · Class 4 Tactical", glyph:"■", hull:75,
+    attacks:[
+      { min:7, max:11, text:"fires a cutting beam" }
+    ],
+    adapt:true,
+    intro:"A Borg cube! Warning: it adapts to our weapon patterns. Hit it hard, and hit it fast.",
+    taunts:[
+      "\"We are the Borg. Lower your shields and surrender your ships.\"",
+      "\"Your biological distinctiveness will be added to our own.\"",
+      "\"Adaptation complete. Your weapons are futile.\""
+    ]
+  }
+];
+
+/* ---------------- state ---------------- */
+const P = {
+  maxHull: 40, maxShield: 15
+};
+let S = null;
+
+function newGame(){
+  S = {
+    deck: [], discard: [], hand: [],
+    hull: P.maxHull, shields: 10,
+    turn: 1, wave: 0,
+    enemy: null,
+    busy: false, over: false
+  };
+  const deck = [];
+  CARDS.forEach(c => { for (let i = 0; i < c.count; i++) deck.push(c.key); });
+  S.deck = shuffle(deck);
+  drawCards(5, true);
+  logMsg("Systems green. Awaiting your orders, Captain.", "lg-sys");
+  nextWave();
+  render();
+}
+
+function shuffle(a){
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function drawCards(n, silent){
+  for (let i = 0; i < n; i++){
+    if (S.deck.length === 0){
+      if (S.discard.length === 0) break;
+      S.deck = shuffle(S.discard); S.discard = [];
+      logMsg("Recycling data cards — deck reshuffled.", "lg-sys");
+    }
+    if (S.hand.length >= 8){
+      S.discard.push(S.deck.pop());
+      if (!silent) logMsg("Hand full — a card was lost to the void.", "lg-warn");
+      continue;
+    }
+    S.hand.push(S.deck.pop());
+  }
+}
+
+function nextWave(){
+  if (S.wave >= WAVES.length){ victory(); return; }
+  const w = WAVES[S.wave];
+  S.enemy = {
+    def: w,
+    hull: w.hull, maxHull: w.hull,
+    armor: 0, cloaked: false, stunned: false,
+    attacksMade: 0
+  };
+  S.wave++;
+  logMsg("⚠ " + w.intro, "lg-en");
+}
+
+/* ---------------- helpers ---------------- */
+function energyForTurn(turn){ return Math.min(3 + Math.floor((turn - 1) / 2), 9); }
+
+function floatText(el, text, color){
+  const r = el.getBoundingClientRect();
+  const s = document.createElement("div");
+  s.className = "float";
+  s.textContent = text;
+  s.style.left = (r.left + r.width / 2) + "px";
+  s.style.top = (r.top + 30) + "px";
+  s.style.color = color || "#ffcc66";
+  document.body.appendChild(s);
+  setTimeout(() => s.remove(), 1100);
+}
+
+function shake(){
+  const g = document.getElementById("table");
+  g.classList.remove("shake"); void g.offsetWidth; g.classList.add("shake");
+}
+
+function redAlert(){
+  document.body.classList.remove("alert"); void document.body.offsetWidth;
+  document.body.classList.add("alert");
+}
+
+function logMsg(text, cls){
+  const l = document.getElementById("log");
+  const p = document.createElement("p");
+  p.className = cls || "lg-sys";
+  p.textContent = text;
+  l.appendChild(p);
+  while (l.children.length > 60) l.removeChild(l.firstChild);
+  l.scrollTop = l.scrollHeight;
+}
+
+/* ---------------- combat ---------------- */
+function damageEnemy(base, srcEl){
+  const e = S.enemy;
+  if (!e || e.hull <= 0) return;
+  let dmg = base;
+  if (e.armor > 0){
+    dmg = Math.max(1, dmg - e.armor);
+  }
+  if (e.cloaked){
+    dmg = Math.max(1, Math.floor(dmg / 2));
+    logMsg("The warbird is cloaked — our shot grazed them for " + dmg + ".", "lg-warn");
+  } else {
+    logMsg("Hit! " + dmg + " damage to the " + e.def.name + ".", "lg-me");
+  }
+  e.hull -= dmg;
+  if (srcEl) floatText(srcEl, "-" + dmg, "#ff9966");
+  if (e.hull <= 0){
+    e.hull = 0;
+    render();
+    logMsg("✦ " + e.def.name + " destroyed!", "lg-good");
+    sfxWin();
+    S.busy = true;
+    setTimeout(() => {
+      S.enemy = null;
+      if (S.wave >= WAVES.length){ victory(); }
+      else {
+        logMsg("Enemy destroyed. Long-range sensors detect a new contact...", "lg-sys");
+        nextWave();
+        S.busy = false;
+        render();
+      }
+    }, 1100);
+  }
+}
+
+function damagePlayer(raw){
+  let dmg = raw;
+  if (S.shields > 0){
+    const absorbed = Math.min(S.shields, dmg);
+    S.shields -= absorbed;
+    dmg -= absorbed;
+    logMsg("Shields absorb " + absorbed + " damage.", "lg-me");
+  }
+  if (dmg > 0){
+    S.hull -= dmg;
+    logMsg("Direct hit to hull! " + dmg + " structural damage.", "lg-en");
+    logMsg("REPORT: Hull integrity at " + Math.max(0, Math.round(S.hull / P.maxHull * 100)) + " percent, Captain!", "lg-warn");
+  }
+  redAlert(); shake(); sfxAlarm();
+  floatText(document.getElementById("player-zone"), "-" + (raw), "#ff6655");
+  if (S.hull <= 0){
+    S.hull = 0;
+    S.over = true;
+    render();
+    setTimeout(defeat, 700);
+  }
+}
+
+/* ---------------- player actions ---------------- */
+function playCard(idx){
+  if (S.busy || S.over || !S.enemy) return;
+  const key = S.hand[idx];
+  const card = CARD_BY_KEY[key];
+  if (card.cost > S.energy){ beep(140,.1,"square",.05); return; }
+  S.energy -= card.cost;
+  S.hand.splice(idx, 1);
+  S.discard.push(key);
+  sfxPlay();
+
+  const el = document.getElementById("hand");
+
+  switch (key){
+    case "phaser":  strike(6, "Phaser banks fire."); break;
+    case "torpedo": strike(13, "Photon torpedo away — direct hit!"); break;
+    case "target":  strike(3, "Targeting sensors lock on."); drawCards(1); break;
+    case "sensors": logMsg("Sensor sweep complete — 2 cards drawn.", "lg-me"); drawCards(2); break;
+    case "shield1": gainShields(8); break;
+    case "power":   S.energy += 2; logMsg("Emergency power routed — +2 energy.", "lg-me"); drawCards(1); break;
+    case "repair":  heal(7, "Damage control teams report hull repaired."); break;
+    case "stations":gainShields(10); S.energy += 1; logMsg("All hands to battle stations! +1 energy.", "lg-warn"); break;
+    case "kirk":    logMsg("\"Attack pattern Kirk — evasive and hit them twice!\"", "lg-quote"); strike(5, ""); strike(5, ""); break;
+    case "spock":   logMsg("\"A logical course of action, Captain.\"", "lg-quote"); strike(4, ""); drawCards(1); break;
+    case "mccoy":   logMsg("\"I'm a doctor, not an engineer — but hold still, this will hurt.\"", "lg-quote"); heal(8, ""); break;
+    case "uhura":
+      S.enemy.stunned = true;
+      logMsg("\"Hailing frequencies open — transmitting... they're standing down!\"", "lg-quote");
+      break;
+    case "sulu":    logMsg("\"Aye, sir — coming about.\"", "lg-quote"); strike(7, ""); break;
+    case "chekov":  logMsg("\"Targeting zheir weak point, Keptin!\"", "lg-quote"); strike(5, ""); drawCards(1); break;
+  }
+
+  function strike(d, msg){ if (msg) logMsg(msg, "lg-me"); damageEnemy(d, el); }
+  function gainShields(n){
+    S.shields = Math.min(P.maxShield, S.shields + n);
+    logMsg("Shields at " + Math.round(S.shields / P.maxShield * 100) + "%.", "lg-me");
+    floatText(document.getElementById("player-zone"), "+" + n + " ⛨", "#99ccff");
+  }
+  function heal(n, msg){
+    S.hull = Math.min(P.maxHull, S.hull + n);
+    if (msg) logMsg(msg, "lg-good");
+    floatText(document.getElementById("player-zone"), "+" + n + " ✚", "#a8d8a8");
+  }
+
+  render();
+}
+
+function endTurn(){
+  if (S.busy || S.over) return;
+  S.busy = true;
+  render();
+  setTimeout(enemyTurn, 600);
+}
+
+function enemyTurn(){
+  const e = S.enemy;
+  if (!e || S.over) { S.busy = false; return; }
+
+  if (e.stunned){
+    e.stunned = false;
+    logMsg("The enemy is still responding to our hail — it holds fire.", "lg-good");
+    finishEnemyTurn();
+    return;
+  }
+
+  e.attacksMade++;
+  let attack = e.def.attacks[Math.floor(Math.random() * e.def.attacks.length)];
+  let dmg = attack.min + Math.floor(Math.random() * (attack.max - attack.min + 1));
+  let text = attack.text;
+
+  if (e.def.barrage && e.attacksMade % e.def.barrage.every === 0){
+    dmg += e.def.barrage.bonus;
+    text = e.def.barrage.text;
+  }
+
+  logMsg("The " + e.def.name + " " + text + "!", "lg-en");
+  damagePlayer(dmg);
+  if (S.over) return;
+
+  if (e.def.cloak && Math.random() < 0.5){
+    e.cloaked = true;
+    logMsg("The warbird engages its cloaking device!", "lg-warn");
+  }
+
+  if (e.def.taunts && Math.random() < 0.45){
+    logMsg(e.def.taunts[Math.floor(Math.random() * e.def.taunts.length)], "lg-quote");
+  }
+
+  finishEnemyTurn();
+}
+
+function finishEnemyTurn(){
+  setTimeout(() => {
+    if (S.over) return;
+    startPlayerTurn();
+  }, 500);
+}
+
+function startPlayerTurn(){
+  const e = S.enemy;
+  if (e){
+    e.cloaked = false;
+    if (e.def.adapt){
+      e.armor += 1;
+      e.hull = Math.min(e.maxHull, e.hull + 2);
+      logMsg("The Borg adapt: +1 armor, hull regenerating. \"Resistance is futile.\"", "lg-en");
+    }
+  }
+  S.turn++;
+  S.energy = energyForTurn(S.turn);
+  S.shields = Math.min(P.maxShield, S.shields + 2);
+  drawCards(1);
+  S.busy = false;
+  render();
+}
+
+/* ---------------- end states ---------------- */
+function victory(){
+  S.over = true;
+  sfxWin();
+  showOverlay(
+    "MISSION COMPLETE",
+    "ALL HOSTILE FORCES ELIMINATED",
+    "The quadrant is safe, Captain. Starfleet has logged your victory in the fleet archives.<br><br>" +
+    "<b>\"Well done. You have the bridge.\"</b><br><br>",
+    "PLAY AGAIN"
+  );
+}
+
+function defeat(){
+  S.over = true;
+  sfxLose();
+  showOverlay(
+    "SHIP LOST",
+    "ALL HANDS... ABANDON SHIP",
+    "The Enterprise breaks apart among the stars. But legends never truly end —<br>" +
+    "somewhere, another crew takes the con.<br><br><b>\"She was a good ship. She deserved better.\"</b>",
+    "TRY AGAIN"
+  );
+}
+
+function showOverlay(title, sub, body, btn){
+  document.getElementById("ov-title").textContent = title;
+  document.getElementById("ov-sub").textContent = sub;
+  document.getElementById("ov-body").innerHTML = body;
+  document.getElementById("ov-btn").textContent = btn;
+  document.getElementById("overlay").classList.remove("hidden");
+}
+
+/* ---------------- render ---------------- */
+function render(){
+  document.getElementById("stat-turn").textContent = S.turn;
+  document.getElementById("stat-wave").textContent = Math.min(S.wave, WAVES.length) + " / " + WAVES.length;
+  document.getElementById("stat-deck").textContent = S.deck.length;
+  document.getElementById("stat-discard").textContent = S.discard.length;
+
+  const e = S.enemy;
+  if (e){
+    document.getElementById("enemy-name").textContent = e.def.name;
+    document.getElementById("enemy-class").textContent = e.def.cls;
+    document.getElementById("enemy-ship").textContent = e.def.glyph;
+    document.getElementById("enemy-ship").classList.toggle("cloaked", e.cloaked);
+    document.querySelector("#enemy-hull .barfill").style.width = (e.hull / e.maxHull * 100) + "%";
+    document.getElementById("enemy-hull-num").textContent = e.hull + " / " + e.maxHull;
+    let st = [];
+    if (e.armor > 0) st.push('<span class="adapt">ADAPTED: -' + e.armor + ' DMG</span>');
+    if (e.cloaked) st.push('<span class="cloak">CLOAKED (halves damage)</span>');
+    if (e.stunned) st.push('<span class="stunned">STUNNED — will skip attack</span>');
+    document.getElementById("enemy-status").innerHTML = st.join(" &nbsp;·&nbsp; ");
+  } else {
+    document.getElementById("enemy-name").textContent = "SCANNING...";
+    document.getElementById("enemy-class").textContent = "";
+    document.getElementById("enemy-ship").textContent = "△";
+    document.getElementById("enemy-ship").classList.remove("cloaked");
+    document.querySelector("#enemy-hull .barfill").style.width = "0%";
+    document.getElementById("enemy-hull-num").textContent = "";
+    document.getElementById("enemy-status").textContent = "";
+  }
+
+  document.querySelector("#player-hull .barfill").style.width = (Math.max(0, S.hull) / P.maxHull * 100) + "%";
+  document.getElementById("player-hull-num").textContent = Math.max(0, S.hull) + " / " + P.maxHull;
+  document.querySelector("#player-shield .barfill").style.width = (S.shields / P.maxShield * 100) + "%";
+  document.getElementById("player-shield-num").textContent = S.shields + " / " + P.maxShield;
+
+  document.getElementById("energy-pips").textContent = "◈".repeat(S.energy) + "◇".repeat(Math.max(0, 9 - S.energy)) + "  " + S.energy;
+
+  const hand = document.getElementById("hand");
+  hand.innerHTML = "";
+  S.hand.forEach((key, i) => {
+    const c = CARD_BY_KEY[key];
+    const div = document.createElement("div");
+    const afford = c.cost <= S.energy && !S.busy && !S.over;
+    div.className = "card t-" + c.type + (afford ? "" : " unaffordable");
+    div.innerHTML =
+      '<div class="stripe">' + c.type.toUpperCase() + '</div>' +
+      '<div class="cost">' + c.cost + '</div>' +
+      '<div class="cname">' + c.name + '</div>' +
+      '<div class="cdesc">' + c.desc + '</div>' +
+      (c.flavor ? '<div class="cflavor">' + c.flavor + '</div>' : '');
+    div.addEventListener("click", () => playCard(i));
+    hand.appendChild(div);
+  });
+}
+
+/* ---------------- wiring ---------------- */
+document.getElementById("ov-btn").addEventListener("click", () => {
+  document.getElementById("overlay").classList.add("hidden");
+  document.getElementById("log").innerHTML = "";
+  newGame();
+  beep(660,.1); setTimeout(()=>beep(880,.12),100);
+});
+document.getElementById("btn-restart").addEventListener("click", function(){
+  if (confirm("Abandon this mission and restart?")){
+    showOverlay(
+      "MISSION RESET",
+      "AWAITING ORDERS",
+      "A fresh crew steps onto the bridge. Three hostile contacts remain on long-range sensors.<br><br><b>The bridge is yours, Captain.</b>",
+      "BEGIN MISSION"
+    );
+  }
+});
+document.getElementById("btn-mute").addEventListener("click", function(){
+  muted = !muted;
+  this.textContent = "SOUND: " + (muted ? "OFF" : "ON");
+  if (!muted) beep(660,.08);
+});
+</script>
+</body>
+</html>
